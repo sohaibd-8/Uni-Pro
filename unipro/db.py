@@ -75,6 +75,27 @@ class Database:
             )
             await db.commit()
 
+    @staticmethod
+    async def _ensure_watch_columns(db: aiosqlite.Connection) -> None:
+        """Forward-only lightweight migration for existing Railway SQLite volumes."""
+        rows = await (await db.execute("PRAGMA table_info(watches)")).fetchall()
+        existing = {str(row[1]) for row in rows}
+        columns = {
+            "last_state": "TEXT",
+            "last_result_hash": "TEXT",
+            "last_best_price_irr": "INTEGER",
+            "last_alerted_hash": "TEXT",
+            "last_alerted_at": "TEXT",
+            "last_available_at": "TEXT",
+            "next_check_at": "TEXT",
+            "check_count": "INTEGER NOT NULL DEFAULT 0",
+            "consecutive_misses": "INTEGER NOT NULL DEFAULT 0",
+            "last_provider_errors_json": "TEXT NOT NULL DEFAULT '{}'",
+        }
+        for name, definition in columns.items():
+            if name not in existing:
+                await db.execute(f"ALTER TABLE watches ADD COLUMN {name} {definition}")
+
     async def ping(self) -> bool:
         try:
             async with aiosqlite.connect(self.path) as db:
