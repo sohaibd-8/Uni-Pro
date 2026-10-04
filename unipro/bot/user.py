@@ -1,6 +1,8 @@
 from __future__ import annotations
 
-from datetime import date
+import asyncio
+from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 from html import escape
 
 from aiogram import F, Router
@@ -16,9 +18,16 @@ from unipro.bot.keyboards import (
     mode_keyboard,
     watches_keyboard,
 )
+from unipro.config import Settings
 from unipro.db import Database
 from unipro.engine.routes import AlternativeRouteEngine
 from unipro.engine.search import SearchOrchestrator
+from unipro.engine.watch import (
+    best_price,
+    merge_snapshots,
+    next_interval_seconds,
+    result_signature,
+)
 from unipro.models import SearchRequest, TravelMode
 from unipro.notifications import render_alternatives, render_snapshot
 from unipro.utils.dates import format_jalali, parse_user_date
@@ -35,7 +44,12 @@ class TripFlow(StatesGroup):
     budget = State()
 
 
-def build_user_router(db: Database, orchestrator: SearchOrchestrator, route_engine: AlternativeRouteEngine) -> Router:
+def build_user_router(
+    db: Database,
+    orchestrator: SearchOrchestrator,
+    route_engine: AlternativeRouteEngine,
+    settings: Settings,
+) -> Router:
     router = Router(name="user")
 
     async def remember(message_or_query) -> int:
@@ -179,7 +193,7 @@ def build_user_router(db: Database, orchestrator: SearchOrchestrator, route_engi
         data = await state.get_data()
         if data.get("intent") == "rescue":
             await state.update_data(allow_alternatives=True)
-            await _finish_flow(query, state, db, orchestrator, route_engine)
+            await _finish_flow(query, state, db, orchestrator, route_engine, settings)
             return
         await state.set_state(TripFlow.alternatives)
         await query.message.edit_text(
@@ -191,7 +205,7 @@ def build_user_router(db: Database, orchestrator: SearchOrchestrator, route_engi
     @router.callback_query(TripFlow.alternatives, F.data.startswith("alt:"))
     async def alternatives(query: CallbackQuery, state: FSMContext) -> None:
         await state.update_data(allow_alternatives=query.data.endswith("1"))
-        await _finish_flow(query, state, db, orchestrator, route_engine)
+        await _finish_flow(query, state, db, orchestrator, route_engine, settings)
 
     @router.callback_query(F.data == "watches:list")
     async def list_watches(query: CallbackQuery) -> None:
@@ -211,14 +225,48 @@ def build_user_router(db: Database, orchestrator: SearchOrchestrator, route_engi
         if not watch or int(watch["user_id"]) != query.from_user.id:
             await query.answer("Watch پیدا نشد.", show_alert=True)
             return
-        modes_text = " + ".join("قطار" if m == "train" else "اتوبوس" if m == "bus" else m for m in watch["modes"])
-        text = (
-            f"👀 <b>Watch #{watch['id']}</b>\n\n"
-            f"📍 {escape(watch['origin'])} → {escape(watch['destination'])}\n"
-            f"📅 {format_jalali(date.fromisoformat(watch['travel_date']))}\n"
-            f"🚆🚌 {modes_text}\n"
-            f"🔔 وضعیت: <code>{watch['status']}</code>"
+        modes_text = " + ".join(
+            "قطار" if m == "train" else "اتوبوس" if m == "bus" else m
+            for m in watch["modes"]
         )
+        state_labels = {
+            "available": "🟢 بلیت دیده شده؛ پایش ادامه دارد",
+            "unavailable": "🟠 فعلاً بلیت مناسبی نیست؛ دارم می‌پام",
+            "not_released": "🗓 فروش هنوز شروع نشده؛ منتظر باز شدنم",
+        }
+        if watch["status"] == "expired":
+            state_text = "⌛ تاریخ سفر گذشته و Watch پایان یافته"
+        elif watch["status"] == "cancelled":
+            state_text = "⛔ پایش متوقف شده"
+        else:
+            state_text = state_labels.get(
+                watch.get("last_state"),
+                "👀 پایش فعاله؛ در حال بررسی",
+            )
+            if watch.get("last_provider_errors") and not watch.get("last_state"):
+                state_text = "⚠️ آخرین بررسی نامطمئن بود؛ دوباره تلاش می‌کنم"
+
+        flex = int(watch.get("flexibility_days") or 0)
+        date_text = format_jalali(date.fromisoformat(watch["travel_date"]))
+        if flex:
+            date_text += f"  (±{flex} روز)"
+
+        details = [
+            f"👀 <b>Watch #{watch['id']}</b>",
+            "",
+            f"📍 {escape(watch['origin'])} → {escape(watch['destination'])}",
+            f"📅 {date_text}",
+            f"🚆🚌 {modes_text}",
+            f"🔔 {state_text}",
+            f"🔎 تعداد بررسی‌ها: <b>{int(watch.get('check_count') or 0)}</b>",
+        ]
+        if watch.get("last_checked_at"):
+            details.append(f"🕒 آخرین بررسی: {_format_watch_time(watch['last_checked_at'])}")
+        if watch.get("next_check_at") and watch["status"] == "active":
+            details.append(f"⏭ بررسی بعدی: {_format_watch_time(watch['next_check_at'])}")
+        if watch.get("last_available_at"):
+            details.append(f"🎫 آخرین مشاهده بلیت: {_format_watch_time(watch['last_available_at'])}")
+        text = "\n".join(details)
         await query.message.edit_text(
             text,
             reply_markup=InlineKeyboardMarkup(
@@ -270,6 +318,7 @@ async def _finish_flow(
     db: Database,
     orchestrator: SearchOrchestrator,
     route_engine: AlternativeRouteEngine,
+    settings: Settings,
 ) -> None:
     data = await state.get_data()
     await state.clear()
@@ -297,15 +346,68 @@ async def _finish_flow(
         )
 
     await query.message.edit_text("🔎 دارم همین الآن چند منبع رو بررسی می‌کنم…")
-    snapshot = await orchestrator.search(request)
+
+    flex = int(data.get("flexibility_days", 0))
+    search_dates = [
+        request.travel_date + timedelta(days=delta)
+        for delta in range(-flex, flex + 1)
+        if request.travel_date + timedelta(days=delta) >= date.today()
+    ]
+    snapshots = await asyncio.gather(
+        *(
+            orchestrator.search(
+                SearchRequest(
+                    origin=request.origin,
+                    destination=request.destination,
+                    travel_date=travel_date,
+                    modes=modes,
+                    passengers=request.passengers,
+                )
+            )
+            for travel_date in search_dates
+        )
+    )
+    snapshot = merge_snapshots(list(snapshots))
+
+    if watch_id:
+        watch = await db.get_watch(watch_id)
+        if watch:
+            signature = result_signature(snapshot)
+            current_best = best_price(snapshot)
+            interval = next_interval_seconds(watch, snapshot.state, settings)
+            now = datetime.now(timezone.utc)
+            await db.record_watch_observation(
+                watch_id,
+                state=snapshot.state.value,
+                result_hash=signature,
+                best_price_irr=current_best,
+                provider_errors=snapshot.errors,
+                next_check_at=(now + timedelta(seconds=interval)).isoformat(),
+            )
+            # The current result is already visible in this chat interaction,
+            # so store it as the alert baseline and avoid a duplicate alert
+            # on the next background cycle.
+            if signature and snapshot.journeys:
+                await db.mark_watch_alerted(watch_id, signature)
+
     text, keyboard = render_snapshot(snapshot, title="نتیجه اولیه")
 
     if snapshot.journeys:
         rows = list(keyboard.inline_keyboard) if keyboard else []
         if watch_id:
-            rows.append([InlineKeyboardButton(text="👀 Watch من", callback_data=f"watch:view:{watch_id}")])
+            text += (
+                "\n\n👀 <b>Watch روشن موند.</b> "
+                "اگر این بلیت ناپدید بشه و دوباره برگرده، قیمت بهتر بشه، "
+                "یا گزینه تازه‌ای اضافه بشه دوباره خبرت می‌کنم."
+            )
+            rows.append(
+                [InlineKeyboardButton(text="👀 وضعیت Watch", callback_data=f"watch:view:{watch_id}")]
+            )
         rows.append([InlineKeyboardButton(text="🏠 منوی اصلی", callback_data="menu:main")])
-        await query.message.edit_text(text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
+        await query.message.edit_text(
+            text,
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=rows),
+        )
         await query.answer()
         return
 
@@ -321,7 +423,11 @@ async def _finish_flow(
         state_line = (
             "\n\n🗓 هنوز فروش باز نشده؛ من شروع فروش رو هم زیر نظر می‌گیرم."
             if snapshot.state.value == "not_released"
-            else "\n\n🔔 Watch فعال شد؛ به محض پیدا شدن گزینه مناسب همین‌جا خبرت می‌کنم."
+            else (
+                "\n\n🔔 Watch فعال شد. فعلاً بلیتی ندیدم؛ "
+                "ممکنه فروش هنوز باز نشده باشه یا ظرفیت موجود نباشه. "
+                "لازم نیست خودت دوباره چک کنی."
+            )
         )
         text += state_line
     else:
@@ -332,3 +438,15 @@ async def _finish_flow(
         rows.insert(0, [InlineKeyboardButton(text="👀 Watch من", callback_data=f"watch:view:{watch_id}")])
     await query.message.edit_text(text + alt_text, reply_markup=InlineKeyboardMarkup(inline_keyboard=rows))
     await query.answer()
+
+
+
+def _format_watch_time(value: str) -> str:
+    try:
+        parsed = datetime.fromisoformat(value)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        local = parsed.astimezone(ZoneInfo("Asia/Tehran"))
+        return f"{format_jalali(local.date())}، {local.strftime('%H:%M')}"
+    except (TypeError, ValueError):
+        return "نامشخص"
