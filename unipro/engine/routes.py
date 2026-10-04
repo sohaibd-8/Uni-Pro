@@ -36,7 +36,11 @@ class AlternativeRouteEngine:
         if not first_snapshot.journeys:
             return []
 
-        second_dates = {j.arrival_at.date() for j in first_snapshot.journeys}
+        first_with_arrival = [j for j in first_snapshot.journeys if j.arrival_at is not None]
+        if not first_with_arrival:
+            return []
+
+        second_dates = {j.arrival_at.date() for j in first_with_arrival if j.arrival_at is not None}
         second_dates.update({d + timedelta(days=1) for d in list(second_dates)})
         second_snapshots = await asyncio.gather(
             *(
@@ -53,7 +57,7 @@ class AlternativeRouteEngine:
             )
         )
         second_journeys = [journey for snap in second_snapshots for journey in snap.journeys]
-        return self._combine(first_snapshot.journeys, second_journeys)
+        return self._combine(first_with_arrival, second_journeys)
 
     def _combine(self, first_legs: list[Journey], second_legs: list[Journey]) -> list[RouteAlternative]:
         result: list[RouteAlternative] = []
@@ -61,7 +65,11 @@ class AlternativeRouteEngine:
         max_wait = timedelta(hours=self.settings.max_transfer_wait_hours)
 
         for first in first_legs:
+            if first.arrival_at is None:
+                continue
             for second in second_legs:
+                if second.arrival_at is None:
+                    continue
                 if first.destination.strip().lower() != second.origin.strip().lower():
                     continue
                 wait = second.departure_at - first.arrival_at
