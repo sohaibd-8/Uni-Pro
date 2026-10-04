@@ -7,6 +7,8 @@ Core UniPro فقط قرارداد `TravelProvider` را می‌شناسد. جز�
 - `AlibabaProvider`: قطار + اتوبوس
 - `MrBilitProvider`: قطار + اتوبوس
 - `Safar724Provider`: اتوبوس
+- `SnappTripProvider`: قطار + اتوبوس
+- `FlyTodayProvider`: اتوبوس
 - `DemoProvider`: تست محلی بدون شبکه
 
 ## قواعد اتصال
@@ -31,6 +33,8 @@ DEMO_MODE=false
 ENABLE_ALIBABA=true
 ENABLE_MRBILIT=true
 ENABLE_SAFAR724=true
+ENABLE_SNAPPTRIP=true
+ENABLE_FLYTODAY=true
 ```
 
 وضعیت و endpointهای تأییدشده در `docs/PROVIDERS.md` ثبت می‌شوند.
