@@ -12,13 +12,14 @@
 - Admin panel
 - Health endpoint
 - Demo providers
+- Live read-only adapters: Alibaba, MrBilit, SnappTrip, Safar724, FlyToday
 
 ## Phase 1 — اولین Pilot واقعی
 
 هدف: 50 تا 200 دانشجو.
 
-- اتصال حداقل یک Provider رسمی/قراردادی قطار
-- اتصال حداقل یک Provider رسمی/قراردادی اتوبوس
+- تست Pilot روی Providerهای وب فعلی
+- مذاکره و مهاجرت Providerهای کلیدی به API رسمی/قراردادی، مخصوصاً Safar724 و دسترسی ریلی رسمی
 - ثبت `provider_latency`, `provider_error_rate`, `search_success_rate`
 - Deeplink واقعی خرید
 - تشخیص دقیق `NOT_RELEASED` در Providerهایی که داده لازم را می‌دهند
