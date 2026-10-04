@@ -69,6 +69,12 @@ class Database:
                 """
             )
             await self._ensure_watch_columns(db)
+            # Watch V1 stopped monitoring after the first ticket alert by
+            # marking rows as "notified". Watch V2 is continuous, so revive
+            # those rows; past dates will be expired by WatchRunner.
+            await db.execute(
+                "UPDATE watches SET status='active', next_check_at=NULL WHERE status='notified'"
+            )
             await db.execute(
                 "INSERT OR IGNORE INTO system_flags(key, value, updated_at) VALUES('polling_enabled', '1', ?)",
                 (_now(),),
