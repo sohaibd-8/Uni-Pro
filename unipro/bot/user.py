@@ -43,6 +43,11 @@ def build_user_router(db: Database, orchestrator: SearchOrchestrator, route_engi
         await db.upsert_user(user.id, user.username, user.first_name)
         return user.id
 
+    @router.message(Command("id"))
+    async def show_id(message: Message) -> None:
+        await remember(message)
+        await message.answer(f"شناسه عددی تلگرام شما: <code>{message.from_user.id}</code>")
+
     @router.message(Command("start"))
     async def start(message: Message, state: FSMContext) -> None:
         await state.clear()
