@@ -15,6 +15,7 @@ def test_live_registry_uses_real_providers_only():
         "mrbilit",
         "safar724",
         "snapptrip",
+        "flytoday",
     }
 
 
