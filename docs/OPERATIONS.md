@@ -9,7 +9,8 @@
 - `TELEGRAM_BOT_TOKEN`
 - `ADMIN_IDS`
 - `DATABASE_PATH`
-- `DEMO_MODE=false` پس از اضافه شدن Provider واقعی
+- `DEMO_MODE=false` برای Providerهای زنده
+- Feature flagهای `ENABLE_ALIBABA`, `ENABLE_MRBILIT`, `ENABLE_SNAPPTRIP`, `ENABLE_SAFAR724`
 
 ## Health Check
 
@@ -24,7 +25,7 @@
 
 ## Alertهای عملیاتی پیشنهادی
 
-پس از اتصال Provider واقعی:
+برای Providerهای زنده:
 
 1. Health endpoint برای 2 چرخه متوالی Down شد.
 2. `last_cycle_at` بیش از 3× poll interval قدیمی شد.
