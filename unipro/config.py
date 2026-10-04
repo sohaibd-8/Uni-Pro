@@ -19,6 +19,9 @@ class Settings(BaseSettings):
     enable_safar724: bool = True
     enable_snapptrip: bool = True
     enable_flytoday: bool = True
+    enable_raja: bool = False
+    raja_api_key: str = ""
+    raja_query_password: str = ""
     provider_timeout_seconds: float = 8.0
 
     health_port: int = 8080
