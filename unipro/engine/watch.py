@@ -49,12 +49,7 @@ def result_signature(snapshot: SearchSnapshot) -> str | None:
         return None
     compact = []
     for group in group_journeys(snapshot.journeys):
-        compact.append(
-            {
-                "trip": group.identity_key,
-                "best_price_irr": group.cheapest.price_irr,
-            }
-        )
+        compact.append({"trip": group.identity_key})
     payload = json.dumps(compact, ensure_ascii=False, sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
@@ -91,7 +86,9 @@ def alert_reason(
 
     previous_state = str(watch.get("last_state") or "")
     last_alerted_hash = watch.get("last_alerted_hash")
-    previous_best = watch.get("last_best_price_irr")
+    previous_best = watch.get("last_alerted_price_irr")
+    if previous_best is None:
+        previous_best = watch.get("last_best_price_irr")
 
     if previous_state != AvailabilityState.AVAILABLE.value:
         return "reappeared" if int(watch.get("check_count") or 0) > 0 else "found"
@@ -306,7 +303,11 @@ class WatchRunner:
                     combined,
                     reason=reason,
                 )
-                await self.db.mark_watch_alerted(int(watch["id"]), signature)
+                await self.db.mark_watch_alerted(
+                    int(watch["id"]),
+                    signature,
+                    current_best,
+                )
             except Exception:
                 logger.exception("Failed notifying user for watch %s", watch["id"])
 
