@@ -32,7 +32,9 @@ def render_snapshot(snapshot: SearchSnapshot, *, title: str = "نتیجه جست
         )
     if not snapshot.journeys:
         return (
-            f"😕 <b>{escape(title)}</b>\n\nفعلاً بلیت مستقیم مناسبی پیدا نکردم.",
+            f"😕 <b>{escape(title)}</b>\n\n"
+            "فعلاً گزینه مناسبی پیدا نکردم. ممکنه فروش این تاریخ هنوز باز نشده باشه "
+            "یا ظرفیت فعلاً موجود نباشه.",
             None,
         )
 
@@ -79,13 +81,33 @@ class NotificationService:
     def __init__(self, bot: Bot):
         self.bot = bot
 
-    async def send_ticket_found(self, user_id: int, watch_id: int, snapshot: SearchSnapshot) -> None:
-        text, keyboard = render_snapshot(snapshot, title="🚨 بلیت پیدا شد")
+    async def send_ticket_found(
+        self,
+        user_id: int,
+        watch_id: int,
+        snapshot: SearchSnapshot,
+        *,
+        reason: str = "found",
+    ) -> None:
+        titles = {
+            "found": "🚨 بلیت پیدا شد",
+            "reappeared": "🚨 بلیت دوباره پیدا شد",
+            "price_drop": "📉 قیمت بهتر پیدا شد",
+            "new_option": "🆕 گزینه جدید پیدا شد",
+        }
+        text, keyboard = render_snapshot(
+            snapshot,
+            title=titles.get(reason, "🚨 بلیت پیدا شد"),
+        )
+        text += (
+            "\n\n👀 <b>پایش همچنان فعاله.</b> "
+            "تا وقتی خودت متوقفش نکنی، UniPro این سفر رو زیر نظر نگه می‌داره."
+        )
         rows = list(keyboard.inline_keyboard) if keyboard else []
         rows.append(
             [
-                InlineKeyboardButton(text="🔄 ادامه پایش", callback_data=f"watch:resume:{watch_id}"),
-                InlineKeyboardButton(text="⛔ توقف", callback_data=f"watch:cancel:{watch_id}"),
+                InlineKeyboardButton(text="👀 وضعیت Watch", callback_data=f"watch:view:{watch_id}"),
+                InlineKeyboardButton(text="⛔ توقف پایش", callback_data=f"watch:cancel:{watch_id}"),
             ]
         )
         await self.bot.send_message(
