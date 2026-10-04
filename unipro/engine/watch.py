@@ -6,6 +6,7 @@ import json
 import logging
 from collections import defaultdict
 from datetime import date, datetime, timedelta, timezone
+from zoneinfo import ZoneInfo
 
 from unipro.config import Settings
 from unipro.db import Database
@@ -133,7 +134,7 @@ def next_interval_seconds(
     if str(watch.get("last_state") or "") == AvailabilityState.AVAILABLE.value:
         return settings.watch_interval_urgent_seconds
 
-    today = today or date.today()
+    today = today or datetime.now(ZoneInfo(settings.app_timezone)).date()
     center = date.fromisoformat(watch["travel_date"])
     flex = int(watch.get("flexibility_days") or 0)
     last_possible = center + timedelta(days=flex)
@@ -352,11 +353,10 @@ class WatchRunner:
             f"{travel_date.isoformat()}|{modes}|{watch['passengers']}"
         )
 
-    @staticmethod
-    def _dates_for_watch(watch: dict) -> list[date]:
+    def _dates_for_watch(self, watch: dict) -> list[date]:
         center = date.fromisoformat(watch["travel_date"])
         flex = int(watch.get("flexibility_days") or 0)
-        today = date.today()
+        today = datetime.now(ZoneInfo(self.settings.app_timezone)).date()
         return [
             center + timedelta(days=delta)
             for delta in range(-flex, flex + 1)
