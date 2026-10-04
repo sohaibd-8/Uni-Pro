@@ -60,3 +60,28 @@ async def test_watch_observation_keeps_watch_active(tmp_path):
     assert watch["last_state"] == "available"
     assert watch["last_alerted_price_irr"] == 9_500_000
     assert watch["check_count"] == 1
+
+
+
+@pytest.mark.asyncio
+async def test_legacy_notified_watch_is_revived(tmp_path):
+    path = tmp_path / "unipro.db"
+    db = Database(str(path))
+    await db.init()
+    await db.upsert_user(1, "student", "Student")
+    watch_id = await db.create_watch(
+        user_id=1,
+        origin="تهران",
+        destination="مشهد",
+        travel_date="2026-11-11",
+        flexibility_days=0,
+        modes=["train"],
+    )
+    await db.update_watch_status(watch_id, "notified")
+
+    # Re-running init simulates the production migration on an existing DB.
+    await db.init()
+    watch = await db.get_watch(watch_id)
+    assert watch is not None
+    assert watch["status"] == "active"
+    assert watch["next_check_at"] is None
