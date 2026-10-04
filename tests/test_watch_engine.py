@@ -141,6 +141,7 @@ def test_new_trip_respects_change_cooldown():
 def test_adaptive_intervals():
     cfg = settings()
     watch = base_watch()
+    watch["last_state"] = "unavailable"
 
     watch["travel_date"] = "2026-10-05"
     assert next_interval_seconds(
