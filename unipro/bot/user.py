@@ -140,7 +140,7 @@ def build_user_router(
         except Exception:
             await message.answer("فرمت رو مثل <code>1405/08/20 22:00</code> بفرست.")
             return
-        if deadline_date < date.today():
+        if deadline_date < _local_today():
             await message.answer("این تاریخ گذشته. یک زمان آینده وارد کن.")
             return
         await state.update_data(
@@ -170,7 +170,7 @@ def build_user_router(
         except Exception:
             await message.answer("تاریخ رو مثل <code>1405/08/20</code> بفرست.")
             return
-        if parsed < date.today():
+        if parsed < _local_today():
             await message.answer("این تاریخ گذشته. یک تاریخ آینده بفرست.")
             return
         await state.update_data(travel_date=parsed.isoformat())
@@ -351,7 +351,7 @@ async def _finish_flow(
     search_dates = [
         request.travel_date + timedelta(days=delta)
         for delta in range(-flex, flex + 1)
-        if request.travel_date + timedelta(days=delta) >= date.today()
+        if request.travel_date + timedelta(days=delta) >= _local_today()
     ]
     snapshots = await asyncio.gather(
         *(
@@ -450,3 +450,8 @@ def _format_watch_time(value: str) -> str:
         return f"{format_jalali(local.date())}، {local.strftime('%H:%M')}"
     except (TypeError, ValueError):
         return "نامشخص"
+
+
+
+def _local_today() -> date:
+    return datetime.now(ZoneInfo("Asia/Tehran")).date()
