@@ -8,17 +8,30 @@ class Settings(BaseSettings):
     telegram_bot_token: str = ""
     admin_ids: str = ""
     database_path: str = "unipro.db"
+
     poll_interval_seconds: int = 60
     poll_concurrency: int = 5
+
+    # Demo mode never mixes fake inventory with live inventory.
     demo_mode: bool = True
+    enable_alibaba: bool = True
+    enable_mrbilit: bool = True
+    enable_safar724: bool = True
+    provider_timeout_seconds: float = 8.0
+
     health_port: int = 8080
     port: int | None = None  # injected by many PaaS providers
+
     min_transfer_minutes: int = 75
     max_transfer_wait_hours: int = 12
     alt_search_every_n_cycles: int = 5
     app_timezone: str = "Asia/Tehran"
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
     @property
     def effective_health_port(self) -> int:
