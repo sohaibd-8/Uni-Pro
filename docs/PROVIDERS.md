@@ -25,6 +25,17 @@
 - موجودی: `POST https://bus.mrbilit.ir/api/GetBusServices`
 - درخواست موجودی با `application/json-patch+json` فرستاده می‌شود.
 
+## SnappTrip
+
+### قطار
+- ایستگاه‌ها: `GET https://train.snapptrip.com/statics/v1/stations`
+- موجودی: `POST https://train.snapptrip.com/listing/v2/search`
+- شناسه‌های endpoint از فهرست زندهٔ ایستگاه‌ها resolve می‌شوند.
+
+### اتوبوس
+- شهرها: `GET https://fp.snapptrip.com/bus-listing-go/v3/endpoints`
+- موجودی: `GET https://bus.snapptrip.com/bus-listing-go/v2/availability/{origin}/to/{destination}/on/{date}`
+
 ## Safar724
 
 ### اتوبوس
