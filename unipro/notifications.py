@@ -11,7 +11,8 @@ from unipro.utils.dates import format_clock, format_jalali
 
 
 def format_irr(value: int) -> str:
-    return f"{value:,} ریال"
+    # Provider contracts expose fares in rials; users compare prices in tomans.
+    return f"{round(value / 10):,} تومان"
 
 
 def mode_icon(mode: str) -> str:
