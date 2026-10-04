@@ -388,7 +388,7 @@ async def _finish_flow(
             # so store it as the alert baseline and avoid a duplicate alert
             # on the next background cycle.
             if signature and snapshot.journeys:
-                await db.mark_watch_alerted(watch_id, signature)
+                await db.mark_watch_alerted(watch_id, signature, current_best)
 
     text, keyboard = render_snapshot(snapshot, title="نتیجه اولیه")
 
