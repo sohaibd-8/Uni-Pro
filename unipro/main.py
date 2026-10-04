@@ -58,7 +58,7 @@ async def main() -> None:
             settings=settings,
         )
     )
-    dp.include_router(build_user_router(db, orchestrator, route_engine))
+    dp.include_router(build_user_router(db, orchestrator, route_engine, settings))
 
     health_runner = await start_health_server(
         settings=settings,
