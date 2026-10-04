@@ -215,7 +215,16 @@ class Database:
 
     async def update_watch_status(self, watch_id: int, status: str) -> None:
         async with aiosqlite.connect(self.path) as db:
-            await db.execute("UPDATE watches SET status=? WHERE id=?", (status, watch_id))
+            if status == "active":
+                await db.execute(
+                    "UPDATE watches SET status='active', next_check_at=NULL WHERE id=?",
+                    (watch_id,),
+                )
+            else:
+                await db.execute(
+                    "UPDATE watches SET status=?, next_check_at=NULL WHERE id=?",
+                    (status, watch_id),
+                )
             await db.commit()
 
     async def mark_checked(self, watch_ids: list[int]) -> None:
