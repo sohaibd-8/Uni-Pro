@@ -15,7 +15,7 @@ UniPro یک ربات تلگرام برای دانشجوهاست که سفر را
 - 📩 هشدار تلگرام + لینک خرید
 - 🛠 پنل مدیریت داخل خود ربات برای ادمین
 - ❤️ Health endpoint برای پایش سرویس
-- 🌐 Provider زنده: Alibaba، MrBilit و SnappTrip (قطار/اتوبوس) + Safar724 (اتوبوس)
+- 🌐 Provider زنده: Alibaba، MrBilit و SnappTrip (قطار/اتوبوس) + Safar724 و FlyToday (اتوبوس)
 - 🧪 Demo Provider برای تست بدون شبکه
 
 > Providerهای زنده از قراردادهای **read-only وب** فروشندگان استفاده می‌کنند و پشت Provider Adapter ایزوله‌اند. این endpointها لزوماً API عمومیِ دارای SLA نیستند و ممکن است با تغییر سایت عوض شوند؛ برای همکاری تجاری باید دسترسی رسمی/قراردادی هر فروشنده جداگانه گرفته شود. UniPro CAPTCHA، احراز هویت یا کنترل دسترسی فروشنده را دور نمی‌زند.
@@ -29,7 +29,7 @@ pip install -r requirements.txt
 python -m unipro.main
 ```
 
-برای تست بدون شبکه، `DEMO_MODE=true` را نگه دارید. برای جست‌وجوی زنده، `DEMO_MODE=false` کنید؛ سپس هر Provider را با `ENABLE_ALIBABA`، `ENABLE_MRBILIT`، `ENABLE_SNAPPTRIP` و `ENABLE_SAFAR724` روشن/خاموش کنید.
+برای تست بدون شبکه، `DEMO_MODE=true` را نگه دارید. برای جست‌وجوی زنده، `DEMO_MODE=false` کنید؛ سپس هر Provider را با `ENABLE_ALIBABA`، `ENABLE_MRBILIT`، `ENABLE_SNAPPTRIP`، `ENABLE_SAFAR724` و `ENABLE_FLYTODAY` روشن/خاموش کنید.
 
 ## منوی اصلی ربات
 
@@ -57,6 +57,7 @@ python -m unipro.main
 | MrBilit | ✅ | ✅ | قرارداد وب read-only |
 | SnappTrip | ✅ | ✅ | قرارداد وب read-only |
 | Safar724 | — | ✅ | قرارداد وب read-only؛ Web Service رسمی هم با قرارداد ارائه می‌شود |
+| FlyToday | — | ✅ | قرارداد وب read-only |
 | Raja مستقیم | ⏳ | — | نیازمند دسترسی رسمی/پایدار؛ endpoint محافظت‌شده داخل محصول فعال نشده |
 
 جزئیات endpointها، محدودیت‌ها و Feature Flagها در [Provider Status](docs/PROVIDERS.md) آمده است.
