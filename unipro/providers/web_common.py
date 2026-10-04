@@ -115,12 +115,13 @@ class PublicWebApiMixin:
                             return json.loads(text)
                         except json.JSONDecodeError as exc:
                             raise RuntimeError("provider returned non-JSON response") from exc
-            except (aiohttp.ClientError, asyncio.TimeoutError, RuntimeError) as exc:
+            except RuntimeError:
+                # Provider-declared HTTP/schema errors are not retried here.
+                # Transient HTTP statuses are handled explicitly above.
+                raise
+            except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
                 last_error = exc
-                if attempt == 0 and not (
-                    isinstance(exc, RuntimeError)
-                    and ("HTTP 401" in str(exc) or "HTTP 403" in str(exc))
-                ):
+                if attempt == 0:
                     await asyncio.sleep(0.25)
                     continue
                 raise
