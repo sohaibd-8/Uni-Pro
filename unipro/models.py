@@ -60,8 +60,10 @@ class Journey:
 
     @property
     def identity_key(self) -> str:
-        arrival = self.arrival_at.isoformat(timespec="minutes") if self.arrival_at else "?"
         if self.mode == TravelMode.BUS:
+            # Bus sellers do not consistently expose arrival time. For cross-seller
+            # grouping, operator + terminals + departure are more stable identifiers.
+            arrival = "*"
             operator = self._norm(self.raw.get("operator"))
             origin_terminal = self._norm(self.raw.get("origin_terminal"))
             destination_terminal = self._norm(self.raw.get("destination_terminal"))
@@ -69,6 +71,7 @@ class Journey:
                 part for part in (operator, origin_terminal, destination_terminal) if part
             ) or self._norm(self.service_id)
         else:
+            arrival = self.arrival_at.isoformat(timespec="minutes") if self.arrival_at else "?"
             service = self._norm(self.service_id)
 
         return "|".join(
