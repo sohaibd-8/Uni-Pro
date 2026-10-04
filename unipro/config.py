@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     enable_alibaba: bool = True
     enable_mrbilit: bool = True
     enable_safar724: bool = True
+    enable_snapptrip: bool = True
     provider_timeout_seconds: float = 8.0
 
     health_port: int = 8080
