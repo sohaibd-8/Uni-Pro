@@ -9,6 +9,7 @@ Core UniPro فقط قرارداد `TravelProvider` را می‌شناسد. جز�
 - `Safar724Provider`: اتوبوس
 - `SnappTripProvider`: قطار + اتوبوس
 - `FlyTodayProvider`: اتوبوس
+- `RajaProvider`: قطار مستقیم با credential مجاز
 - `DemoProvider`: تست محلی بدون شبکه
 
 ## قواعد اتصال
@@ -35,6 +36,9 @@ ENABLE_MRBILIT=true
 ENABLE_SAFAR724=true
 ENABLE_SNAPPTRIP=true
 ENABLE_FLYTODAY=true
+ENABLE_RAJA=true
+RAJA_API_KEY=...
+RAJA_QUERY_PASSWORD=...
 ```
 
 وضعیت و endpointهای تأییدشده در `docs/PROVIDERS.md` ثبت می‌شوند.
