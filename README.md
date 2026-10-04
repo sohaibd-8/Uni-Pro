@@ -29,7 +29,7 @@ pip install -r requirements.txt
 python -m unipro.main
 ```
 
-برای تست بدون شبکه، `DEMO_MODE=true` را نگه دارید. برای جست‌وجوی زنده، `DEMO_MODE=false` کنید؛ سپس هر Provider را با `ENABLE_ALIBABA`، `ENABLE_MRBILIT`، `ENABLE_SNAPPTRIP`، `ENABLE_SAFAR724` و `ENABLE_FLYTODAY` روشن/خاموش کنید.
+برای تست بدون شبکه، `DEMO_MODE=true` را نگه دارید. برای جست‌وجوی زنده، `DEMO_MODE=false` کنید؛ سپس هر Provider را با `ENABLE_ALIBABA`، `ENABLE_MRBILIT`، `ENABLE_SNAPPTRIP`، `ENABLE_SAFAR724`، `ENABLE_FLYTODAY` و `ENABLE_RAJA` روشن/خاموش کنید.
 
 ## منوی اصلی ربات
 
@@ -58,7 +58,7 @@ python -m unipro.main
 | SnappTrip | ✅ | ✅ | قرارداد وب read-only |
 | Safar724 | — | ✅ | قرارداد وب read-only؛ Web Service رسمی هم با قرارداد ارائه می‌شود |
 | FlyToday | — | ✅ | قرارداد وب read-only |
-| Raja مستقیم | ⏳ | — | نیازمند دسترسی رسمی/پایدار؛ endpoint محافظت‌شده داخل محصول فعال نشده |
+| Raja مستقیم | ✅* | — | Adapter آماده؛ فقط با `RAJA_API_KEY` و `RAJA_QUERY_PASSWORD` فعال می‌شود |
 
 جزئیات endpointها، محدودیت‌ها و Feature Flagها در [Provider Status](docs/PROVIDERS.md) آمده است.
 
