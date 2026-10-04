@@ -12,6 +12,17 @@ class Settings(BaseSettings):
     poll_interval_seconds: int = 60
     poll_concurrency: int = 5
 
+    # Smart Watch cadence. The runner wakes every poll_interval_seconds,
+    # but each watch is only searched when next_check_at is due.
+    watch_interval_urgent_seconds: int = 60
+    watch_interval_near_seconds: int = 120
+    watch_interval_mid_seconds: int = 300
+    watch_interval_far_seconds: int = 600
+    watch_error_retry_seconds: int = 120
+    watch_change_alert_cooldown_seconds: int = 900
+    watch_price_drop_min_irr: int = 500_000
+    watch_price_drop_min_percent: float = 3.0
+
     # Demo mode never mixes fake inventory with live inventory.
     demo_mode: bool = True
     enable_alibaba: bool = True
