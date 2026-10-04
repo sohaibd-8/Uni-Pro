@@ -55,15 +55,20 @@ Safar724 علاوه بر قرارداد وب، به‌صورت رسمی Web Serv
 
 ## Raja
 
-Provider مستقیم Raja فعلاً در Registry فعال نیست.
+### قطار مستقیم
+- ایستگاه‌ها: `GET https://www.raja.ir/assets/File/station.json`
+- موجودی: `GET https://hostservice.raja.ir/Api/ServiceProvider/TrainListEq?q=...`
+- Header موردنیاز: `api-key`
+- Query به فرمت زیر ساخته می‌شود و سپس با AES-CBC + PBKDF2-SHA1 رمز می‌شود:
+  `FromStation-ToStation-Family-1-yyyyMMdd--Passengers-false-0-0-L1`
+- پاسخ اصلی از `GoTrains` خوانده می‌شود.
 
-نمونه‌های عمومی قدیمی برای موجودی قطار از `hostservice.raja.ir/Api/ServiceProvider/TrainListEq` با query رمز‌شده و credential/API key استفاده می‌کنند. چون یک قرارداد عمومی، پایدار و مجاز برای استفاده بدون credential رسمی تأیید نشده، UniPro آن endpoint محافظت‌شده را hard-code نکرده است.
+UniPro این Adapter را پیاده کرده، اما فقط وقتی هر سه شرط برقرار باشند ثبت می‌کند:
+1. `DEMO_MODE=false`
+2. `ENABLE_RAJA=true`
+3. `RAJA_API_KEY` و `RAJA_QUERY_PASSWORD` از Secret/Environment داده شده باشند.
 
-مسیر درست:
-1. دریافت دسترسی رسمی Raja/سامانه ریلی یا از Aggregator قراردادی.
-2. ساخت `RajaProvider` با credential در Secret Manager.
-3. تست contract و rate limit.
-4. فعال‌سازی با Feature Flag.
+UniPro کلید API را از JavaScript سایت استخراج نمی‌کند و credential قدیمی/منتشرشده را reuse نمی‌کند. 401/403 نیز دور زده یا retry نمی‌شود.
 
 ## سیاست شکست Provider
 
