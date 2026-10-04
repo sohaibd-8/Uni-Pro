@@ -2,8 +2,11 @@ from __future__ import annotations
 
 from unipro.config import Settings
 from unipro.models import TravelMode
+from unipro.providers.alibaba import AlibabaProvider
 from unipro.providers.base import TravelProvider
 from unipro.providers.demo import DemoProvider
+from unipro.providers.mrbilit import MrBilitProvider
+from unipro.providers.safar724 import Safar724Provider
 
 
 class ProviderRegistry:
@@ -13,6 +16,7 @@ class ProviderRegistry:
     @classmethod
     def from_settings(cls, settings: Settings) -> "ProviderRegistry":
         providers: list[TravelProvider] = []
+
         if settings.demo_mode:
             providers.extend(
                 [
@@ -39,12 +43,30 @@ class ProviderRegistry:
                     ),
                 ]
             )
+            return cls(providers)
+
+        if settings.enable_alibaba:
+            provider = AlibabaProvider()
+            provider.request_timeout_seconds = settings.provider_timeout_seconds
+            providers.append(provider)
+
+        if settings.enable_mrbilit:
+            provider = MrBilitProvider()
+            provider.request_timeout_seconds = settings.provider_timeout_seconds
+            providers.append(provider)
+
+        if settings.enable_safar724:
+            provider = Safar724Provider()
+            provider.request_timeout_seconds = settings.provider_timeout_seconds
+            providers.append(provider)
+
         return cls(providers)
 
     def status_lines(self) -> list[str]:
         if not self.providers:
             return ["هیچ Provider فعالی ثبت نشده است."]
         return [
-            f"• {p.display_name} (`{p.provider_id}`): {', '.join(sorted(m.value for m in p.supported_modes))}"
+            f"• {p.display_name} (`{p.provider_id}`): "
+            f"{', '.join(sorted(mode.value for mode in p.supported_modes))}"
             for p in self.providers
         ]
