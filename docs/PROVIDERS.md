@@ -45,6 +45,14 @@
 
 Safar724 علاوه بر قرارداد وب، به‌صورت رسمی Web Service فروش بلیت اتوبوس برای همکاری تجاری ارائه می‌کند. برای نسخه تجاری UniPro باید مهاجرت به credential رسمی در اولویت باشد.
 
+## FlyToday
+
+### اتوبوس
+- جست‌وجوی شهر: `POST https://placesearch.flytoday.ir/api/Bus/Search`
+- موجودی: `POST https://www.flytodayir.com/api/gateway/V1/Bus/Search`
+- درخواست وب فعلی از headerهای `X-App`, `x-currency`, `x-origin` و `X-Path` استفاده می‌کند.
+- این Provider در MVP فقط برای اتوبوس فعال است؛ پرواز خارج از Scope فعلی Travel Watch است.
+
 ## Raja
 
 Provider مستقیم Raja فعلاً در Registry فعال نیست.
