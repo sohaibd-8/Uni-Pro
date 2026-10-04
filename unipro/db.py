@@ -85,6 +85,7 @@ class Database:
             "last_result_hash": "TEXT",
             "last_best_price_irr": "INTEGER",
             "last_alerted_hash": "TEXT",
+            "last_alerted_price_irr": "INTEGER",
             "last_alerted_at": "TEXT",
             "last_available_at": "TEXT",
             "next_check_at": "TEXT",
@@ -302,16 +303,22 @@ class Database:
                 )
             await db.commit()
 
-    async def mark_watch_alerted(self, watch_id: int, alert_hash: str) -> None:
+    async def mark_watch_alerted(
+        self,
+        watch_id: int,
+        alert_hash: str,
+        best_price_irr: int | None,
+    ) -> None:
         async with aiosqlite.connect(self.path) as db:
             await db.execute(
                 """
                 UPDATE watches SET
                     last_alerted_hash=?,
+                    last_alerted_price_irr=?,
                     last_alerted_at=?
                 WHERE id=? AND status='active'
                 """,
-                (alert_hash, _now(), watch_id),
+                (alert_hash, best_price_irr, _now(), watch_id),
             )
             await db.commit()
 
