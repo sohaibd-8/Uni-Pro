@@ -9,6 +9,7 @@ from unipro.providers.mrbilit import MrBilitProvider
 from unipro.providers.flytoday import FlyTodayProvider
 from unipro.providers.safar724 import Safar724Provider
 from unipro.providers.snapptrip import SnappTripProvider
+from unipro.providers.raja import RajaProvider
 
 
 class ProviderRegistry:
@@ -69,6 +70,14 @@ class ProviderRegistry:
 
         if settings.enable_flytoday:
             provider = FlyTodayProvider()
+            provider.request_timeout_seconds = settings.provider_timeout_seconds
+            providers.append(provider)
+
+        if settings.enable_raja and settings.raja_api_key and settings.raja_query_password:
+            provider = RajaProvider(
+                api_key=settings.raja_api_key,
+                query_password=settings.raja_query_password,
+            )
             provider.request_timeout_seconds = settings.provider_timeout_seconds
             providers.append(provider)
 
