@@ -41,23 +41,44 @@ class Journey:
     origin: str
     destination: str
     departure_at: datetime
-    arrival_at: datetime
+    arrival_at: datetime | None
     price_irr: int
     booking_url: str
     service_id: str
     seats: int | None = None
     raw: dict[str, Any] = field(default_factory=dict)
 
+    @staticmethod
+    def _norm(value: Any) -> str:
+        return (
+            " ".join(str(value or "").split())
+            .replace("ي", "ی")
+            .replace("ك", "ک")
+            .replace("‌", "")
+            .casefold()
+        )
+
     @property
     def identity_key(self) -> str:
+        arrival = self.arrival_at.isoformat(timespec="minutes") if self.arrival_at else "?"
+        if self.mode == TravelMode.BUS:
+            operator = self._norm(self.raw.get("operator"))
+            origin_terminal = self._norm(self.raw.get("origin_terminal"))
+            destination_terminal = self._norm(self.raw.get("destination_terminal"))
+            service = "|".join(
+                part for part in (operator, origin_terminal, destination_terminal) if part
+            ) or self._norm(self.service_id)
+        else:
+            service = self._norm(self.service_id)
+
         return "|".join(
             [
                 self.mode.value,
-                self.origin.strip().lower(),
-                self.destination.strip().lower(),
+                self._norm(self.origin),
+                self._norm(self.destination),
                 self.departure_at.isoformat(timespec="minutes"),
-                self.arrival_at.isoformat(timespec="minutes"),
-                self.service_id.strip().lower(),
+                arrival,
+                service,
             ]
         )
 
@@ -104,6 +125,8 @@ class RouteAlternative:
 
     @property
     def total_minutes(self) -> int:
+        if self.second_leg.arrival_at is None:
+            return 10**9
         delta = self.second_leg.arrival_at - self.first_leg.departure_at
         return max(0, int(delta.total_seconds() // 60))
 
