@@ -45,7 +45,16 @@ def alternatives_keyboard() -> InlineKeyboardMarkup:
 def watches_keyboard(watches: list[dict]) -> InlineKeyboardMarkup:
     rows: list[list[InlineKeyboardButton]] = []
     for watch in watches[:10]:
-        status = "🟢" if watch["status"] == "active" else "🟡" if watch["status"] == "notified" else "⚫"
+        if watch["status"] == "active":
+            status = {
+                "available": "🟢",
+                "unavailable": "🟠",
+                "not_released": "🗓",
+            }.get(watch.get("last_state"), "👀")
+        elif watch["status"] == "expired":
+            status = "⌛"
+        else:
+            status = "⚫"
         rows.append(
             [
                 InlineKeyboardButton(
