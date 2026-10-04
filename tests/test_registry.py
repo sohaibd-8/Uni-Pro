@@ -14,6 +14,7 @@ def test_live_registry_uses_real_providers_only():
         "alibaba",
         "mrbilit",
         "safar724",
+        "snapptrip",
     }
 
 
