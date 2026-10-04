@@ -68,6 +68,7 @@ class Database:
                 );
                 """
             )
+            await self._ensure_watch_columns(db)
             await db.execute(
                 "INSERT OR IGNORE INTO system_flags(key, value, updated_at) VALUES('polling_enabled', '1', ?)",
                 (_now(),),
@@ -166,6 +167,23 @@ class Database:
             ).fetchall()
             return [self._decode_watch(dict(row)) for row in rows]
 
+    async def list_due_active_watches(self, now_iso: str | None = None) -> list[dict[str, Any]]:
+        now_iso = now_iso or _now()
+        async with aiosqlite.connect(self.path) as db:
+            db.row_factory = aiosqlite.Row
+            rows = await (
+                await db.execute(
+                    """
+                    SELECT * FROM watches
+                    WHERE status='active'
+                      AND (next_check_at IS NULL OR next_check_at <= ?)
+                    ORDER BY id ASC
+                    """,
+                    (now_iso,),
+                )
+            ).fetchall()
+            return [self._decode_watch(dict(row)) for row in rows]
+
     async def list_recent_watches(self, limit: int = 20) -> list[dict[str, Any]]:
         async with aiosqlite.connect(self.path) as db:
             db.row_factory = aiosqlite.Row
@@ -187,6 +205,91 @@ class Database:
             await db.execute(
                 f"UPDATE watches SET last_checked_at=? WHERE id IN ({placeholders})",
                 (_now(), *watch_ids),
+            )
+            await db.commit()
+
+    async def record_watch_observation(
+        self,
+        watch_id: int,
+        *,
+        state: str,
+        result_hash: str | None,
+        best_price_irr: int | None,
+        provider_errors: dict[str, str],
+        next_check_at: str,
+    ) -> None:
+        now = _now()
+        async with aiosqlite.connect(self.path) as db:
+            if state == "error":
+                await db.execute(
+                    """
+                    UPDATE watches SET
+                        last_checked_at=?,
+                        next_check_at=?,
+                        check_count=check_count+1,
+                        last_provider_errors_json=?
+                    WHERE id=? AND status='active'
+                    """,
+                    (
+                        now,
+                        next_check_at,
+                        json.dumps(provider_errors, ensure_ascii=False),
+                        watch_id,
+                    ),
+                )
+            else:
+                await db.execute(
+                    """
+                    UPDATE watches SET
+                        last_checked_at=?,
+                        last_state=?,
+                        last_result_hash=?,
+                        last_best_price_irr=?,
+                        last_available_at=CASE WHEN ?='available' THEN ? ELSE last_available_at END,
+                        next_check_at=?,
+                        check_count=check_count+1,
+                        consecutive_misses=CASE WHEN ?='available' THEN 0 ELSE consecutive_misses+1 END,
+                        last_alerted_hash=CASE
+                            WHEN ?!='available' AND consecutive_misses >= 1 THEN NULL
+                            ELSE last_alerted_hash
+                        END,
+                        last_provider_errors_json=?
+                    WHERE id=? AND status='active'
+                    """,
+                    (
+                        now,
+                        state,
+                        result_hash,
+                        best_price_irr,
+                        state,
+                        now,
+                        next_check_at,
+                        state,
+                        state,
+                        json.dumps(provider_errors, ensure_ascii=False),
+                        watch_id,
+                    ),
+                )
+            await db.commit()
+
+    async def mark_watch_alerted(self, watch_id: int, alert_hash: str) -> None:
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                """
+                UPDATE watches SET
+                    last_alerted_hash=?,
+                    last_alerted_at=?
+                WHERE id=? AND status='active'
+                """,
+                (alert_hash, _now(), watch_id),
+            )
+            await db.commit()
+
+    async def expire_watch(self, watch_id: int) -> None:
+        async with aiosqlite.connect(self.path) as db:
+            await db.execute(
+                "UPDATE watches SET status='expired', next_check_at=NULL WHERE id=? AND status='active'",
+                (watch_id,),
             )
             await db.commit()
 
@@ -250,4 +353,9 @@ class Database:
         row["modes"] = json.loads(row.pop("modes_json"))
         row["allow_alternatives"] = bool(row["allow_alternatives"])
         row["alternative_notified"] = bool(row["alternative_notified"])
+        raw_errors = row.get("last_provider_errors_json") or "{}"
+        try:
+            row["last_provider_errors"] = json.loads(raw_errors)
+        except (TypeError, json.JSONDecodeError):
+            row["last_provider_errors"] = {}
         return row
