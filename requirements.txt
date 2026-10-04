@@ -6,3 +6,5 @@ jdatetime>=5,<6
 python-dateutil>=2.9,<3
 pytest>=8,<9
 pytest-asyncio>=0.24,<1
+
+pycryptodome>=3.21,<4
