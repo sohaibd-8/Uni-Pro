@@ -7,6 +7,7 @@ from unipro.providers.base import TravelProvider
 from unipro.providers.demo import DemoProvider
 from unipro.providers.mrbilit import MrBilitProvider
 from unipro.providers.safar724 import Safar724Provider
+from unipro.providers.snapptrip import SnappTripProvider
 
 
 class ProviderRegistry:
@@ -57,6 +58,11 @@ class ProviderRegistry:
 
         if settings.enable_safar724:
             provider = Safar724Provider()
+            provider.request_timeout_seconds = settings.provider_timeout_seconds
+            providers.append(provider)
+
+        if settings.enable_snapptrip:
+            provider = SnappTripProvider()
             provider.request_timeout_seconds = settings.provider_timeout_seconds
             providers.append(provider)
 
